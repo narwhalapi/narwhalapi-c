@@ -1,0 +1,29 @@
+[package]
+name = "narwhalapi-ffi"
+version = "0.2.0"
+edition = "2021"
+rust-version = "1.82"
+authors = ["Narwhal API Team <support@narwhalapi.com>"]
+homepage = "https://narwhalapi.com"
+license = "MIT"
+description = "C bindings for the Narwhal API with exact decimal values"
+publish = false
+
+[lib]
+name = "narwhalapi"
+crate-type = ["staticlib", "cdylib"]
+# Documented by c/include/narwhalapi.h; the lib name matches the Rust crate's.
+doc = false
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(nw_c_tests)'] }
+
+[features]
+default = ["unstable"]
+unstable = ["sdk/unstable"]
+
+[dependencies]
+sdk = { package = "narwhalapi", path = "../narwhalapi", features = ["blocking"] }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["rt", "rt-multi-thread"] }

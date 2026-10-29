@@ -1,0 +1,87 @@
+language = "C"
+include_guard = "NARWHALAPI_H"
+cpp_compat = true
+usize_is_size_t = true
+style = "both"
+sort_by = "Name"
+documentation_style = "c99"
+sys_includes = ["stdbool.h", "stddef.h", "stdint.h"]
+no_includes = true
+header = """
+/*
+ * narwhalapi.h: C client for the Narwhal API.
+ *
+ * Decimals are exact wire strings (`const char *`); never convert them to floating point.
+ * Operations marked "Stability: unstable" and their types are declared only when
+ * NW_UNSTABLE is defined before this header is included.
+ *
+ * Ownership rules
+ *
+ * 1. The caller owns every `**out` it receives and frees it with that type's `_free`. Passing
+ *    `NULL` to `_free` is a no-op.
+ * 2. Everything reachable from a response is owned by that response and stays valid until its
+ *    `_free`. Never free inner pointers.
+ * 3. Input pointers are borrowed for the duration of the call only; nothing is retained.
+ * 4. On failure `*out` stays `NULL` and `*err` is set (when `err` is non-NULL). On success
+ *    `*err` stays `NULL`.
+ * 5. `nw_client` may be shared across threads, and calls on it run concurrently. Free it only
+ *    after all calls on it have returned.
+ * 6. No global init. Rust panics never cross the boundary: every export is wrapped in
+ *    `catch_unwind`. Status-returning exports return `NW_ERR_INTERNAL`; other exports use
+ *    the fallbacks below.
+ * 7. Strings are NUL-terminated UTF-8, and arrays are `const T *items` plus `size_t items_len`.
+ *    Integer fields from the API are `int64_t`, enums are `int32_t`, and status accessors return
+ *    `int`.
+ *
+ * Return values without a status
+ *
+ * Every export catches panics. Required NULL arguments to status-returning exports return
+ * `NW_ERR_INVALID_ARGUMENT`; a caught panic returns `NW_ERR_INTERNAL`. Optional NULL inputs
+ * remain valid as documented. Non-status exports use these fallbacks on NULL or panic:
+ *
+ * - Void functions (`*_free`, including `nw_client_free`) do nothing; `_free(NULL)` is a no-op.
+ * - Pointer-returning accessors return NULL.
+ * - `nw_error_status` returns 0.
+ * - `nw_error_retry_after` returns -1.
+ * - `nw_version` returns a static string and is never NULL.
+ * - `nw_version_check` returns false.
+ *
+ * ABI stability
+ *
+ * Patch releases keep the ABI for dynamically linked programs. Response structs only gain
+ * fields at the end, and existing enum constants keep their values (new values take the
+ * next number). Union structs start with `kind`, `unknown_raw` and `meta`; variant pointers
+ * follow and new variants are appended. Structs the caller allocates (`nw_config` and every
+ * `*_params`) start with `size_t size`, which the caller sets to `sizeof` the struct; the
+ * library reads only fields inside that size, so a program built against an older header
+ * keeps working. `size` 0 is `NW_ERR_INVALID_ARGUMENT`. `nw_header` is frozen. Call
+ * `nw_version_check(NW_VERSION_MAJOR, NW_VERSION_MINOR)` at startup to confirm the loaded
+ * library serves this header.
+ *
+ * Representation
+ *
+ * - Optional strings, models and arrays are NULL when absent; a present empty array has a
+ *   non-NULL pointer and length 0. That pointer must not be dereferenced, and passing it to
+ *   memcpy or memcmp is undefined even with length 0: check the length first. Optional
+ *   integers and booleans carry `has_<field>`.
+ * - An enum field `x` is an `int32_t` constant (`NW_<ENUM>_UNKNOWN` for values this version
+ *   does not know) and `x_raw` is its exact wire text.
+ * - A response string containing U+0000 cannot be a C string; the call returns
+ *   `NW_ERR_DECODE`.
+ * - Arrays of models and unions hold pointers (`const nw_x *const *items`), and a model's
+ *   `meta` is a pointer, so response structs are only ever reached through pointers.
+ * - Paginated operations return one page. Pass the page's `next_cursor` as `params->cursor`
+ *   to fetch the next; `next_cursor` is NULL on the last page.
+ */"""
+
+[defines]
+"feature = unstable" = "NW_UNSTABLE"
+
+[export]
+exclude = ["nw_test_panic_hook"]
+
+[parse]
+parse_deps = false
+
+[enum]
+rename_variants = "None"

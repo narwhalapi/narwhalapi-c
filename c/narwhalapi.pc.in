@@ -1,0 +1,10 @@
+libdir=@LIBDIR@
+includedir=@INCLUDEDIR@
+
+Name: narwhalapi
+Description: C client for the Narwhal API with exact decimal strings
+URL: https://narwhalapi.com
+Version: @VERSION@
+Cflags: -I${includedir}
+Libs: -L${libdir} -Wl,-rpath,${libdir} -lnarwhalapi
+Libs.private: @NATIVE_LIBS@
